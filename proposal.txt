@@ -1,10 +1,10 @@
-Question: Is there a relationship between a professional Hockey team's performance during the season and the positiveness or negativeness of their newspaper coverage? In that vein, which team is given the hardest time (worst coverage considering their performance) and which team is given the biggest pass (best coverage considering their performance)?
+Question: Is there a relationship between a professional hockey team's performance during the season and the positiveness or negativeness of their newspaper coverage? In that vein, which team is given the hardest time (worst coverage considering their performance) and which team is given the biggest pass (best coverage considering their performance)?
 
 Motivation: I am huge fan of the National Hockey League. Not only am I fan of the sport itself but of the larger community around the sport. Just like any fandom, this group has it's own lingo, inside jokes and pointless but incredibly fun discussion points. Comicbook fans might argue whether the 'Hulk' or 'Thor' would win in a fight but NHL fans like to argue about the color and logo designs for new teams, amongst other silly minutia. 
 
-It should come as no surprise that mythologies begin to sorround players, team management or franchises. Edmonton is mismanaged. Montreal loses out on good coaches because they require their coach speak French. The commissioner Gary Bettman is terrible.
+It should come as no surprise that mythologies begin to surround players, team management or franchises. Edmonton is mismanaged. Montreal loses out on good coaches because they require their coach speak French. The commissioner Gary Bettman is terrible.
 
-It is in this vein that I wanted to examine how a team's performance over the course of a season is reflected in their coverage in the news. Is there, as one might expect, a positive correlation between the two or are some teams just given a harder time? Are bad teams doing better than expected giving more glowing coverage than good teams doing just as well or is there an 'it's about time' angle to the coverage? 
+It is in this vein that I wanted to examine how a team's performance over the course of a season is reflected in their coverage in the news. Is there, as one might expect, a positive correlation between the two or are some teams just given a harder time? Are bad teams doing better than expected given more glowing coverage than good teams doing just as well or is there an 'it's about time' angle to the coverage? 
 
 Workflow: 
 
@@ -12,9 +12,9 @@ Workflow:
 
 2. Use this data to build a model determining how good each team's season is going at any point in time.
 
-3. Query Google New's API for articles relating to each team at various time increments.
+3. Query Google News' API for articles relating to each team at various time increments.
 
-4. Perform sentiment analysis on these articles to determine how positive or negative their are.
+4. Perform sentiment analysis on these articles to determine how positive or negative they are.
 
 5. Link the team performance data to the sentiment analysis.
 
