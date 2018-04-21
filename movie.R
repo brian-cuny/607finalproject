@@ -87,11 +87,10 @@ Top.Movie.Query <- function(years, rank){
 
 top.movies <- Top.Movie.Query(2017:2008, 50)
 
-top.movies.query <- map2_df(top.movies$Movie[226:250], top.movies$Year[226:250], ~Movie.API.Query(.x, .y))
+top.movies.query <- map2_df(top.movies$Movie[476:500], top.movies$Year[476:500], ~Movie.API.Query(.x, .y))
 
-write_csv(top.movies.query, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\2013_2.csv')
+write_csv(top.movies.query, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\2008_2.csv')
 
-write_csv(top.movies, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\top_movies.csv')
 
 word.analysis <- top.20.movies %>%
   select(Title, Lead_1_Male, Lead_2_Male, Plot) %>%
