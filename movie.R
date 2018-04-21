@@ -5,29 +5,36 @@ library(jsonlite)
 library(httr)
 library(RCurl)
 library(XML)
-library(purrrlyr)
+library(tidytext)
+library(SnowballC)
 
 Movie.API.Query <- function(movie, year){
   print(movie)
-  GET('http://www.omdbapi.com/', 
+  initial.query <- GET('http://www.omdbapi.com/', 
       add_headers('Content-Type'='application/json', 'Accept-Encoding'='gzip'),
       query=list('t'=movie, 'apikey'=apikey, 'y'=year, 'plot'='full')
   ) %>%
   content(as='text') %>%
   fromJSON(flatten=FALSE) %>%
   .[-15] %>%
-  as.tibble() %>%
-  select(c(1, 2, 3, 5, 6, 9, 10, 14, 15, 18, 21)) %>%
-  mutate(Genre = str_extract(Genre, '([^,]+)'),
-         Runtime = str_extract(Runtime, '(\\d+)'),
-         Actors = IMDB.Star.Query(imdbID),
-         BoxOffice = parse_number(BoxOffice)
-  ) %>%
-  separate(Actors, c('Lead_1', 'Lead_2'), sep=', ') %>%
-  mutate(Lead_1_Male = Wikipedia.Gender.Query(Lead_1),
-         Lead_2_Male = Wikipedia.Gender.Query(Lead_2)
-  ) %>%
-  select(c(1:6, 13, 7, 14), everything())
+  as.tibble()
+  if(ncol(initial.query) == 2){
+    print('Movie Not Found!')
+    tibble(Title=movie, Year=as.character(year))
+  }else{
+    initial.query %>%
+      select(c(1, 2, 3, 5, 6, 9, 10, 14, 15, 18, 21)) %>%
+      mutate(Genre = str_extract(Genre, '([^,]+)'),
+             Runtime = str_extract(Runtime, '(\\d+)'),
+             Actors = IMDB.Star.Query(imdbID),
+             BoxOffice = parse_number(BoxOffice)
+      ) %>%
+      separate(Actors, c('Lead_1', 'Lead_2'), sep=', ') %>%
+      mutate(Lead_1_Male = Wikipedia.Gender.Query(Lead_1),
+             Lead_2_Male = Wikipedia.Gender.Query(Lead_2)
+      ) %>%
+      select(c(1:6, 13, 7, 14), everything())
+  }
 }
 
 IMDB.Star.Query <- function(movie.id){
@@ -40,7 +47,7 @@ IMDB.Star.Query <- function(movie.id){
 }
 
 Wikipedia.Gender.Query <- function(lead){
-  Sys.sleep(1)
+  Sys.sleep(0.5)
   lead <- str_replace_all(lead, ' ', '_')
   initial.query <- getURL(paste0('https://en.wikipedia.org/wiki/', lead)) %>% 
             htmlParse() %>%
@@ -78,13 +85,39 @@ Top.Movie.Query <- function(years, rank){
     )
 }
 
-top.movies <- Top.Movie.Query(c(2017, 2016), 3)
+top.movies <- Top.Movie.Query(2017:2008, 50)
 
-top.movies <- map2_df(top.movies$Movie, top.movies$Year, ~Movie.API.Query(.x, .y))
+top.movies.query <- map2_df(top.movies$Movie[226:250], top.movies$Year[226:250], ~Movie.API.Query(.x, .y))
 
+write_csv(top.movies.query, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\2013_2.csv')
 
+write_csv(top.movies, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\top_movies.csv')
 
+word.analysis <- top.20.movies %>%
+  select(Title, Lead_1_Male, Lead_2_Male, Plot) %>%
+  unnest_tokens(word, Plot) %>%
+  anti_join(stop_words) %>%
+  mutate(#word = wordStem(word),
+         males = Lead_1_Male + Lead_2_Male
+         )
 
+data.tfidf <- word.analysis %>%
+  count(males, word) %>%
+  bind_tf_idf(word, males, n) %>%
+  arrange(males, tf_idf) %>%
+  mutate(order = row_number()) %>%
+  group_by(males) %>%
+  top_n(10, tf_idf)
+
+ggplot(data.tfidf, aes(order, tf_idf, fill=males)) +
+  geom_bar(show.legend=FALSE, stat='identity') +
+  facet_wrap(~males, scales='free') +
+  coord_flip() +
+  theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
+  scale_x_continuous(
+    breaks = data.tfidf$order,
+    labels = data.tfidf$word
+  )
 
 
 Wikipedia.Gender.Query('Patrick Stewart')
