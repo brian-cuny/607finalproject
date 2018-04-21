@@ -92,41 +92,44 @@ top.movies.query <- map2_df(top.movies$Movie[476:500], top.movies$Year[476:500],
 write_csv(top.movies.query, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\2008_2.csv')
 
 
-word.analysis <- top.20.movies %>%
-  select(Title, Lead_1_Male, Lead_2_Male, Plot) %>%
+all.movies <- 2008:2017 %>%  
+                map_df(~read_csv(paste0('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\', ., '.csv')))
+
+all.movies %<>%
+  mutate(type = ifelse(Lead_1_Male & Lead_2_Male, 1, ifelse(Lead_1_Male & !Lead_2_Male, 2, ifelse(!Lead_1_Male & Lead_2_Male, 3, 4))))
+
+all.movies %>%
+  count(type)
+  
+gender.genre <- all.movies %>%
+  count(type, Genre) %>%
+  group_by(type) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup(type) %>%
+  arrange(type, desc(prop))
+
+word.analysis <- all.movies %>%
+  select(Title, type, Plot) %>%
   unnest_tokens(word, Plot) %>%
-  anti_join(stop_words) %>%
-  mutate(#word = wordStem(word),
-         males = Lead_1_Male + Lead_2_Male
-         )
+  anti_join(stop_words)
 
 data.tfidf <- word.analysis %>%
-  count(males, word) %>%
-  bind_tf_idf(word, males, n) %>%
-  arrange(males, tf_idf) %>%
+  count(type, word) %>%
+  bind_tf_idf(word, type, n) %>%
+  arrange(type, tf_idf) %>%
   mutate(order = row_number()) %>%
-  group_by(males) %>%
+  group_by(type) %>%
   top_n(10, tf_idf)
 
-ggplot(data.tfidf, aes(order, tf_idf, fill=males)) +
+ggplot(data.tfidf, aes(order, tf_idf, fill=type)) +
   geom_bar(show.legend=FALSE, stat='identity') +
-  facet_wrap(~males, scales='free') +
+  facet_wrap(~type, scales='free') +
   coord_flip() +
   theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
   scale_x_continuous(
     breaks = data.tfidf$order,
     labels = data.tfidf$word
   )
-
-
-Wikipedia.Gender.Query('Patrick Stewart')
-Wikipedia.Gender.Query('Gal Gadot')
-Wikipedia.Gender.Query('Tom Holland')
-Wikipedia.Gender.Query('Neel Sethi')
-Wikipedia.Gender.Query('Anna Kendrick')
-Wikipedia.Gender.Query('Jaime FitzSimons')
-
-
 
 
 

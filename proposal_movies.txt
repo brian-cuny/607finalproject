@@ -1,0 +1,21 @@
+Question: How large is the descrepency between the number of movies that have male leads and the number that have female leads? What are the identifying characteristics of male lead movies vs. female lead movies? Are movies with female leads more aimed at female audiences than movies with all male leads?
+
+In the past year, additional attention had been paid to representation in pop culture. The #MeToo movement has been making waves across the country and in Hollywood especially. Now more than ever society is beginning to examine representation in films and media. I seek to explore the descrepency in movies with male and female leads in an effort to statistically anaylize past trends.
+
+I was motived by a scene in the recent Netflix show, "Master of None." In this episode the main character (played by Indian-American Aziz Ansari) and his friend (also of Indian decent) audition for a part in the network show "3 Friends." The casting call is open to all ethnicities and Aziz and his friends' auditions are well received. However, Aziz does not get the part as it is revealed that the network executives won't hire two actors of Indian decent because "then it will be known as the Indian show."
+
+Work Flow:
+
+1. Scrap the top 50 movies from the past 10 years from boxofficemojo.com
+
+2. Use an API to query IMDB to get information about the movie and it's actors.
+
+3. Scrap Wikipedia to determine the genders of the film's two leads.
+
+4. Perform an analysis on the data. Questions may include:
+
+ - What proportion of films have male leads vs. female leads?
+ - Is there a descrepency in the types of films that have male leads and female leads?
+ - Do plot summaries reveal any information about the nature of the films? (ie: Do female lead movies attempt to appeal to women or to all movie goers?) 
+ - Can I write the ultimate female lead movie summary?
+ - What is the most high profile female lead movie?
