@@ -7,6 +7,7 @@ library(RCurl)
 library(XML)
 library(tidytext)
 library(SnowballC)
+library(RNeo4j)
 
 Movie.API.Query <- function(movie, year){
   print(movie)
@@ -96,40 +97,200 @@ all.movies <- 2008:2017 %>%
                 map_df(~read_csv(paste0('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\', ., '.csv')))
 
 all.movies %<>%
-  mutate(type = ifelse(Lead_1_Male & Lead_2_Male, 1, ifelse(Lead_1_Male & !Lead_2_Male, 2, ifelse(!Lead_1_Male & Lead_2_Male, 3, 4))))
+  mutate(Type = ifelse(Lead_1_Male & Lead_2_Male, 'mm', ifelse(Lead_1_Male & !Lead_2_Male, 'mf', ifelse(!Lead_1_Male & Lead_2_Male, 'fm', 'ff'))))
 
-all.movies %>%
-  count(type)
-  
+
+# exploratory analysis ----------------------------------------------------
+
+movie.count <- all.movies %>%
+  count(Type)
+
+chisq.test(x=movie.count$n, p=rep(0.25, 4)) 
+
+#There is unequal representation in mm, mf, fm and ff movies.
+
+
 gender.genre <- all.movies %>%
-  count(type, Genre) %>%
-  group_by(type) %>%
+  count(Type, Genre) %>%
+  group_by(Type) %>%
   mutate(prop = n/sum(n)) %>%
-  ungroup(type) %>%
-  arrange(type, desc(prop))
+  ungroup(Type) %>%
+  arrange(Type, desc(prop))
 
-word.analysis <- all.movies %>%
-  select(Title, type, Plot) %>%
-  unnest_tokens(word, Plot) %>%
-  anti_join(stop_words)
-
-data.tfidf <- word.analysis %>%
-  count(type, word) %>%
-  bind_tf_idf(word, type, n) %>%
-  arrange(type, tf_idf) %>%
-  mutate(order = row_number()) %>%
-  group_by(type) %>%
-  top_n(10, tf_idf)
-
-ggplot(data.tfidf, aes(order, tf_idf, fill=type)) +
-  geom_bar(show.legend=FALSE, stat='identity') +
-  facet_wrap(~type, scales='free') +
+ggplot(gender.genre) +
+  geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
   coord_flip() +
-  theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
-  scale_x_continuous(
-    breaks = data.tfidf$order,
-    labels = data.tfidf$word
-  )
+  scale_x_discrete()
+
+#Women get comedy movies much more than Men, who get action movies
+
+top.box.office <- all.movies %>%
+  group_by(Type) %>%
+  top_n(5, BoxOffice) %>%
+  arrange(Type, desc(BoxOffice))
+
+#MM movies are all action movies. MF movies 4 of the 5 F are romantic interests, in FM are action movies, FF are about princesses
+
+movie.ratings <- all.movies %>%
+  count(Type, Rated) %>%
+  group_by(Type) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup(Type) %>%
+  arrange(Type, Rated)
+
+#FF movies are more likely to be rated R. This is a result of the FF movies being comedies and the non FF movies are action/adventures. 
+#The only 'Adult' FF action movies are Spy and Ghostbusters. Both star Melissa McCarthy and both were advertised as comedies first and action second
+
+
+# - -----------------------------------------------------------------------
+# plot sentiment analysis -------------------------------------------------
+# - -----------------------------------------------------------------------
+
+Genre.Analysis <- function(genre){
+  word.analysis <- all.movies %>%
+    filter(Genre == genre) %>%
+    select(Title, Type, Plot) %>%
+    unnest_tokens(word, Plot) %>%
+    anti_join(stop_words) %>%
+    filter(word %in% get_sentiments('nrc')$word) %>%
+    count(Type, word, sort=TRUE)
+  
+  label.data <- word.analysis %>%
+    arrange(Type, n) %>%
+    mutate(order = row_number()) %>%
+    group_by(Type) %>%
+    top_n(10, n)
+  
+  ggplot(label.data, aes(order, n, fill=Type)) +
+    geom_bar(show.legend=FALSE, stat='identity') +
+    facet_wrap(~Type, scales='free') +
+    coord_flip() +
+    theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
+    scale_x_continuous(
+      breaks = label.data$order,
+      labels = label.data$word
+    )
+}
+
+Genre.Analysis('Comedy')
+
+# FF action movies contain more dainty words, while others do not. However, the overall sentiments are equally represented.
+
+word.analysis %>%
+  count(Type, sentiment) %>%
+  group_by(Type) %>%
+  mutate(prop = n/sum(n)) %>%
+  ungroup(Type) %>%
+  arrange(Type, desc(prop)) %>%
+  ggplot() +
+  geom_bar(aes(reorder(sentiment, desc(sentiment)), prop, fill=Type), stat='identity', position='dodge') +
+  coord_flip() +
+  scale_x_discrete()
+
+Genre.FM.Analysis <- function(genre){
+  word.analysis <- all.movies %>%
+    filter(Genre == genre) %>%
+    select(Title, Lead_1_Male, Plot) %>%
+    unnest_tokens(word, Plot) %>%
+    anti_join(stop_words) %>%
+    filter(word %in% get_sentiments('nrc')$word) %>%
+    count(Lead_1_Male, word, sort=TRUE)
+  
+  label.data <- word.analysis %>%
+    arrange(Lead_1_Male, n) %>%
+    mutate(order = row_number()) %>%
+    group_by(Lead_1_Male) %>%
+    top_n(10, n)
+  
+  ggplot(label.data, aes(order, n, fill=Lead_1_Male)) +
+    geom_bar(show.legend=FALSE, stat='identity') +
+    facet_wrap(~Lead_1_Male, scales='free') +
+    coord_flip() +
+    theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
+    scale_x_continuous(
+      breaks = label.data$order,
+      labels = label.data$word
+    )
+}
+
+Genre.FM.Analysis('Comedy')
+
+
+
+# movie suggestions -------------------------------------------------------
+
+tidy.movies <- all.movies %>%
+  select(1:3, 5:9, 14:15) %>%
+  gather(key='x', value='Actor', Lead_1, Lead_2) %>%
+  gather(key='y', value='Gender', Lead_1_Male, Lead_2_Male) %>%
+  filter(str_detect(y, x)) %>%
+  mutate(Gender = ifelse(Gender == TRUE, 'Male', 'Female')) %>%
+  select(-c(x, y))
+
+neo4j.password <- 'asdfasdf'
+
+graph <- startGraph('http://localhost:7474/db/data/', username='neo4j', password=neo4j.password)
+
+clear(graph)
+
+addConstraint(graph, 'Movie', 'title')
+addConstraint(graph, 'Actor', 'name')
+
+query <- '
+MERGE (actor:Actor {name: {name}, gender: {gender}})
+MERGE (movie:Movie {title: {title}, year: TOINT({year}), rated: {rated}, genre: {genre}, boxoffice: TOINT({boxoffice})})
+CREATE (actor)-[a:ACTED_IN]->(movie)
+SET a.type = {type}
+'
+tx <- newTransaction(graph)
+
+for(i in 1:nrow(tidy.movies)){
+  row <- tidy.movies[i, ]
+  
+  appendCypher(tx, query,
+               name = row$Actor,
+               gender = row$Gender,
+               title = row$Title,
+               year = row$Year,
+               rated = row$Rated,
+               genre = row$Genre,
+               boxoffice = row$BoxOffice,
+               type = row$Type
+               )
+}
+
+commit(tx)
+
+summary(graph)
+
+female.actors <- cypher(graph, "MATCH (a:Actor)-[acted:ACTED_IN]->(m:Movie)
+                                WHERE a.gender = 'Female'
+                                AND NOT(acted.type = 'ff')
+                                RETURN DISTINCT a.name")
+
+tidy.movies %>%
+  filter(Actor %in% female.actors$a.name) %>%
+  count(Actor, sort=TRUE)
+
+#Amy Adams, Cameron Diaz
+
+action.movie.analysis <- word.analysis %>%
+  filter(Type == 'mm') 
+
+set.seed(250)
+sample.index <- sample(seq_len(nrow(action.movie.analysis)), 10, prob=action.movie.analysis$n)
+
+synopsis.words <- action.movie.analysis[sample.index, ]
+
+#Amy Adams and Cameron Diaz star in 'Action Blockbuster'! While journeying to the Sahara Desert in search of a fabled magnificent treasure, Professor Slater (Amy Adams) discoveres a conspiracy that will shake the very foundation of the world. Bound together by fate with Annie (Cameron Diaz), a local adventurer with a large cash bounty on her head, and tracked across the Desert by deadly, mysterious forces, Professor Slater must uncover an ancient secret buried by time. Towering over our heroes is the explosive adventure of a lifetime. Will they survive and what will they discover?
+
+
+
+
+
+
+
+
 
 
 
