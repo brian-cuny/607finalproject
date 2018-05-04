@@ -8,6 +8,9 @@ library(XML)
 library(tidytext)
 library(SnowballC)
 library(RNeo4j)
+library(ggrepel)
+library(ggraph)
+library(igraph)
 
 Movie.API.Query <- function(movie, year){
   print(movie)
@@ -105,6 +108,16 @@ all.movies %<>%
 movie.count <- all.movies %>%
   count(Type)
 
+
+
+library(treemap)
+library(d3Tree)
+
+movie.count %>%
+  treemap(index='Type',
+          vSize='n',
+          type='index')
+
 chisq.test(x=movie.count$n, p=rep(0.25, 4)) 
 
 #There is unequal representation in mm, mf, fm and ff movies.
@@ -116,6 +129,13 @@ gender.genre <- all.movies %>%
   mutate(prop = n/sum(n)) %>%
   ungroup(Type) %>%
   arrange(Type, desc(prop))
+
+tree <- gender.genre %>%
+  treemap(index=c('Type', 'Genre'),
+          vSize='n',
+          type='index')
+
+d3tree(tree)
 
 ggplot(gender.genre) +
   geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
@@ -283,6 +303,89 @@ sample.index <- sample(seq_len(nrow(action.movie.analysis)), 10, prob=action.mov
 synopsis.words <- action.movie.analysis[sample.index, ]
 
 #Amy Adams and Cameron Diaz star in 'Action Blockbuster'! While journeying to the Sahara Desert in search of a fabled magnificent treasure, Professor Slater (Amy Adams) discoveres a conspiracy that will shake the very foundation of the world. Bound together by fate with Annie (Cameron Diaz), a local adventurer with a large cash bounty on her head, and tracked across the Desert by deadly, mysterious forces, Professor Slater must uncover an ancient secret buried by time. Towering over our heroes is the explosive adventure of a lifetime. Will they survive and what will they discover?
+
+x.vect <- seq(0, 95, 5)
+rep.vect <- rep(20, 5)
+
+all.movies %>%
+  mutate(x=rep(seq(0, 120, 5), each=20),
+         y=rep(seq(120, 0, -5), 20)) %>%
+  ggplot(aes(x, y)) +
+  geom_text(aes(label=Title)) +
+  labs(x=NULL,
+       y='Box Office',
+       fill='Year') +
+  scale_fill_brewer(palette = 'Set1')
+
+all.movies %>%
+  select(Title) %>% 
+  mutate(Empty = '') %>%
+  graph_from_data_frame() %>%
+  ggraph(layout='treemap', weight='size') +
+  geom_node_tile(aes(fill=depth), size=0.25)
+  geom_node_text(aes(label=name), repel=TRUE) +
+  theme_void() +
+  labs(title='')
+
+
+
+# shiny -------------------------------------------------------------------
+
+library(shiny)
+library(tidyverse)
+library(d3treeR)
+
+ui <- fluidPage(
+        sliderInput(inputId = 'num',
+                label = 'Choose a number',
+                value=min(all.movies$Year), min=min(all.movies$Year), max=max(all.movies$Year),
+                step=1
+        ),
+        actionButton('clicks', 'Click Me!'),
+        d3treeOutput3('hist'),
+        tableOutput('all')
+)
+
+server <- function(input, output){
+  
+  observeEvent(input$clicks, {
+    print(as.numeric(input$clicks))
+  })
+  
+  data <- eventReactive(input$clicks, {
+    all.movies %>%
+      filter(Year != input$num)
+  })
+
+  output$all <- renderTable({
+    data()
+  })
+  
+  #output$hist <- renderPlot({
+    #data() %>%
+      #ggplot(aes(reorder(Title, BoxOffice), BoxOffice)) +
+      #geom_bar(aes(fill=factor(Year)), stat='identity') +
+      #labs(x=NULL,
+           #y='Box Office',
+           #fill='Year') +
+   #   scale_fill_brewer(palette = 'Set1')
+  #})
+  
+  output$hist <- renderD3tree3({
+    tree <- gender.genre %>%
+      treemap(index=c('Type', 'Genre'),
+              vSize='n',
+              type='index')
+    
+    d3tree(tree)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+
+
+
 
 
 
