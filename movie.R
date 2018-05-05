@@ -11,6 +11,8 @@ library(RNeo4j)
 library(ggrepel)
 library(ggraph)
 library(igraph)
+library(scales)
+
 
 Movie.API.Query <- function(movie, year){
   print(movie)
@@ -89,11 +91,12 @@ Top.Movie.Query <- function(years, rank){
     )
 }
 
+
+
 top.movies <- Top.Movie.Query(2017:2008, 50)
 
-top.movies.query <- map2_df(top.movies$Movie[476:500], top.movies$Year[476:500], ~Movie.API.Query(.x, .y))
+top.movies.query <- map2_df(top.movies$Movie, top.movies$Year, ~Movie.API.Query(.x, .y))
 
-write_csv(top.movies.query, 'C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\2008_2.csv')
 
 
 all.movies <- 2008:2017 %>%  
@@ -118,7 +121,9 @@ library(d3Tree)
 movie.count %>%
   treemap(index='Type',
           vSize='n',
-          type='index')
+          type='index',
+          title='Blockbuster Distribution',
+          palette = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3"))
 
 chisq.test(x=movie.count$n, p=rep(0.25, 4)) 
 
@@ -162,14 +167,22 @@ ggplot(gender.genre) +
   geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
   coord_flip() +
   scale_x_discrete() +
-  scale_fill_brewer(palette = 'Set1')
+  scale_y_continuous(expand=c(0, 0)) +
+  scale_fill_brewer(palette = 'Set1') +
+  labs(x=NULL,
+       y='Proportion') +
+  theme_bw() +
+  theme(panel.grid.major.y = element_blank())
+  
 
 #Women get comedy movies much more than Men, who get action movies
 
 top.box.office <- all.movies %>%
+  select(1, 2, 14, 15) %>%
   group_by(Type) %>%
   top_n(5, BoxOffice) %>%
-  arrange(Type, desc(BoxOffice))
+  arrange(Type, desc(BoxOffice)) %>%
+  mutate(BoxOffice = dollar(BoxOffice))
 
 #MM movies are all action movies. MF movies 4 of the 5 F are romantic interests, in FM are action movies, FF are about princesses
 
@@ -188,33 +201,41 @@ movie.ratings <- all.movies %>%
 # plot sentiment analysis -------------------------------------------------
 # - -----------------------------------------------------------------------
 
-Genre.Analysis <- function(genre){
-  word.analysis <- all.movies %>%
-    filter(Genre == genre) %>%
-    select(Title, Type, Plot) %>%
-    unnest_tokens(word, Plot) %>%
-    anti_join(stop_words) %>%
-    filter(word %in% get_sentiments('nrc')$word) %>%
-    count(Type, word, sort=TRUE)
+word.analysis <- all.movies %>%
+  select(Title, Type, Plot) %>%
+  unnest_tokens(word, Plot) %>%
+  anti_join(stop_words) %>%
+  filter(word %in% get_sentiments('nrc')$word) %>%
+  filter(!duplicated(.)) %>%
+  count(Type, word, sort=TRUE) %>%
+  bind_tf_idf(word, Type, n)
   
-  label.data <- word.analysis %>%
-    arrange(Type, n) %>%
-    mutate(order = row_number()) %>%
-    group_by(Type) %>%
-    top_n(10, n)
+label.data <- word.analysis %>%
+  arrange(Type, n) %>%
+  mutate(order = row_number()) %>%
+  group_by(Type) %>%
+  top_n(10, n)
   
-  ggplot(label.data, aes(order, n, fill=Type)) +
-    geom_bar(show.legend=FALSE, stat='identity') +
-    facet_wrap(~Type, scales='free') +
-    coord_flip() +
-    theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
-    scale_x_continuous(
-      breaks = label.data$order,
-      labels = label.data$word
-    )
-}
+ggplot(label.data, aes(order, n, fill=Type)) +
+  geom_bar(show.legend=FALSE, stat='identity') +
+  facet_wrap(~Type, scales='free') +
+  coord_flip() +
+  theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
+  scale_x_continuous(
+    breaks = label.data$order,
+    labels = label.data$word
+  ) +
+  scale_y_continuous(expand = c(0, 0, 0.03, 0.03)) +
+  labs(x=NULL,
+       y=NULL) +
+  theme_bw() +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        strip.background = element_rect(fill='grey50')
+        )
+  
 
-Genre.Analysis('Comedy')
+
 
 # FF action movies contain more dainty words, while others do not. However, the overall sentiments are equally represented.
 

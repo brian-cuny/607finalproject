@@ -1,0 +1,290 @@
+---
+title: "607 Final Project"
+author: "Brian Weinfeld"
+date: "Mary 5, 2018"
+output: 
+  slidy_presentation:
+    df_print: kable
+    css: 
+      - https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css
+      - custom.css
+    font_adjustment: +1
+    highlight: pygments
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(magrittr)
+library(httr)
+library(jsonlite)
+library(httr)
+library(RCurl)
+library(XML)
+library(tidytext)
+library(SnowballC)
+library(RNeo4j)
+library(ggrepel)
+library(ggraph)
+library(igraph)
+library(treemap)
+library(scales)
+library(knitr)
+library(kableExtra)
+library(repmis)
+#source_data('file:\\C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
+load('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
+```
+
+<div class='jumbotron'>
+Introduction
+</div>
+
+What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?
+
+---
+
+```{r eval=FALSE}
+Top.Movie.Query <- function(years, rank){
+  years %>%
+    map_(~getURL(paste0('http://www.boxofficemojo.com/yearly/chart/?yr=', .x, '&p=.htm')) %>% 
+              htmlParse() %>%
+              xpathSApply('//*[@id="body"]/table[3]//tr//td', xmlValue) %>%
+              .[15:914] %>%
+              matrix(ncol=9, byrow=T) %>%
+              as.data.frame() %>%
+              filter(row_number() <= rank) %>%
+              mutate(Movie=str_replace(V2, paste0('(.*?)( \\(', .x, '\\))$'), '\\1'),
+                     Year = .x) %>%
+              select(Movie, Year)
+    )
+}
+
+top.movies <- Top.Movie.Query(2017:2008, 50)
+
+all.movies <- map2_df(top.movies$Movie, top.movies$Year, ~Movie.API.Query(.x, .y))
+```
+
+The first function `Top.Movie.Query` scrapes boxofficemojo.com for the names of the top 50 domestic grossing blockbusters between 2008 and 2017
+
+---
+
+```{r eval=FALSE}
+Movie.API.Query <- function(movie, year){
+  print(movie)
+  initial.query <- GET('http://www.omdbapi.com/', 
+      add_headers('Content-Type'='application/json', 'Accept-Encoding'='gzip'),
+      query=list('t'=movie, 'apikey'=apikey, 'y'=year, 'plot'='full')
+  ) %>%
+  content(as='text') %>%
+  fromJSON(flatten=FALSE) %>%
+  .[-15] %>%
+  as.tibble()
+  if(ncol(initial.query) == 2){
+    print('Movie Not Found!')
+    tibble(Title=movie, Year=as.character(year))
+  }else{
+    initial.query %>%
+      select(c(1, 2, 3, 5, 6, 9, 10, 14, 15, 18, 21)) %>%
+      mutate(Genre = str_extract(Genre, '([^,]+)'),
+             Runtime = str_extract(Runtime, '(\\d+)'),
+             Actors = IMDB.Star.Query(imdbID),
+             BoxOffice = parse_number(BoxOffice)
+      ) %>%
+      separate(Actors, c('Lead_1', 'Lead_2'), sep=', ') %>%
+      mutate(Lead_1_Male = Wikipedia.Gender.Query(Lead_1),
+             Lead_2_Male = Wikipedia.Gender.Query(Lead_2)
+      ) %>%
+      select(c(1:6, 13, 7, 14), everything())
+  }
+}
+```
+
+The second function `Movie.API.Query` accesses an API that called OMDB and requests each of the movies. This function called two other functions to fill in missing information, namely the stars of the movie and the genders of those stars.
+
+---
+
+```{r eval=FALSE}
+IMDB.Star.Query <- function(movie.id){
+  Sys.sleep(1)
+  getURL(paste0('https://www.imdb.com/title/', movie.id,'/')) %>% 
+    htmlParse() %>%
+    xpathSApply('//*[@id="title-overview-widget"]//span[@itemprop="actors"]//a', xmlValue) %>%
+    .[1:2] %>%
+    paste(collapse=', ')
+}
+```
+
+---
+
+```{r eval=FALSE}
+Wikipedia.Gender.Query <- function(lead){
+  Sys.sleep(0.5)
+  lead <- str_replace_all(lead, ' ', '_')
+  initial.query <- getURL(paste0('https://en.wikipedia.org/wiki/', lead)) %>% 
+            htmlParse() %>%
+            xpathSApply('//*[@id="mw-content-text"]/div/p[position()<3]', xmlValue) %>%
+            unlist()  %>%
+            paste(collapse='')
+  if(str_detect(initial.query, 'may refer to:')){
+    initial.query <- getURL(paste0('https://en.wikipedia.org/wiki/', lead, '_(actor)')) %>% 
+      htmlParse() %>%
+      xpathSApply('//*[@id="mw-content-text"]/div/p[position()<3]', xmlValue) %>%
+      unlist() %>%
+      paste(collapse='')
+  }
+  if(str_detect(initial.query, 'actor') & !str_detect(initial.query, 'actress')){
+    return(TRUE)
+  }else if(str_detect(initial.query, 'actress') & !str_detect(initial.query, 'actor')){
+    return(FALSE)
+  }else{
+    return(NA)
+  }
+}
+```
+
+The `IMDB.Star.Query` uses the url provided by the API to scrape the two main leads of each film. The `Wikipedia.Gender.Query` scrapes Wikipedia in an effort to determine the gender of the star by looking for the woards 'actor' or 'actress'. If a determination cannot be made, it returns null. This method had over a 95% success rate.
+
+---
+
+```{r echo=FALSE, message=FALSE}
+all.movies %>%
+  select(-10, -11, -12, -13) %>%
+  top_n(10, wt=BoxOffice) %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'))
+```
+
+---
+
+<div class='jumbotron'>
+Initial Analysis
+</div>
+
+<div class='col-left'>
+```{r echo=FALSE}
+movie.count %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'))
+```
+</div>
+
+<div class='col-right'>
+```{r echo=FALSE}
+movie.count %>%
+  treemap(index='Type',
+          vSize='n',
+          type='index',
+          title='Blockbuster Distribution',
+          palette = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3"))
+```
+</div>
+
+---
+
+```{r echo=FALSE}
+ggplot(gender.genre) +
+  geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
+  coord_flip() +
+  scale_x_discrete() +
+  scale_y_continuous(expand=c(0, 0)) +
+  scale_fill_brewer(palette = 'Set1') +
+  labs(x=NULL,
+       y='Proportion') +
+  theme_bw() +
+  theme(panel.grid.major.y = element_blank())
+```
+
+--- 
+
+<div class='col-left'>
+```{r echo=FALSE}
+top.box.office %>% 
+  filter(Type == 'Female/Female') %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 20)
+```
+
+```{r echo=FALSE}
+top.box.office %>% 
+  filter(Type == 'Female/Male') %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 20)
+```
+</div>
+
+<div class='col-right'>
+```{r echo=FALSE}
+top.box.office %>% 
+  filter(Type == 'Male/Female') %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 20)
+```
+
+```{r echo=FALSE}
+top.box.office %>% 
+  filter(Type == 'Male/Male') %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 20)
+```
+</div>
+
+---
+
+Shiny APP #1 - Gender/BoxOffice/Genre Treemap
+
+Also can put rating breakdown here if needed
+
+---
+
+<div class='jumbotron'>
+Sentiment Analysis
+</div>
+
+```{r echo=FALSE}
+ggplot(label.data, aes(order, n, fill=Type)) +
+  geom_bar(show.legend=FALSE, stat='identity') +
+  facet_wrap(~Type, scales='free') +
+  coord_flip() +
+  theme(axis.text.x=element_text(angle=-30, vjust=1, hjust=0)) +
+  scale_x_continuous(
+    breaks = label.data$order,
+    labels = label.data$word
+  ) +
+  scale_y_continuous(expand = c(0, 0, 0.03, 0.03)) +
+  labs(x=NULL,
+       y=NULL) +
+  theme_bw() +
+  theme(panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        strip.background = element_rect(fill='grey50')
+        )
+```
+
+---
+
+<div class='jumbotron'>
+Suggestion
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
