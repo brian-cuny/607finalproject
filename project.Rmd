@@ -34,15 +34,21 @@ library(d3treeR)
 library(knitr)
 library(kableExtra)
 library(repmis)
-#source_data('file:\\C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
-load('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
+source_data('https://github.com/brian-cuny/607finalproject/raw/master/realdata.RData?raw=True')
+#load('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
 ```
 
 <div class='jumbotron'>
-Introduction
+<h1>What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?</h1>
 </div>
 
-What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?
+- Collect via webscraping top 50 movies from the past 10 years from boxofficemojo.com
+- Collect via API the corresponding IMDB information
+- Collect via webscraping supplemental information from Wikipedia
+- Explore the data
+- Create exploratory app
+- Create my own movie!
+- Conclusion
 
 ---
 
@@ -67,7 +73,7 @@ top.movies <- Top.Movie.Query(2017:2008, 50)
 all.movies <- map2_df(top.movies$Movie, top.movies$Year, ~Movie.API.Query(.x, .y))
 ```
 
-The first function `Top.Movie.Query` scrapes boxofficemojo.com for the names of the top 50 domestic grossing blockbusters between 2008 and 2017
+- `Top.Movie.Query` scrapes boxofficemojo.com for the names of the top 50 domestic grossing blockbusters between 2008 and 2017
 
 ---
 
@@ -102,7 +108,7 @@ Movie.API.Query <- function(movie, year){
 }
 ```
 
-The second function `Movie.API.Query` accesses an API that called OMDB and requests each of the movies. This function called two other functions to fill in missing information, namely the stars of the movie and the genders of those stars.
+- `Movie.API.Query` accesses an API that called OMDB and requests each of the movies. This function called two other functions to fill in missing information, namely the stars of the movie and the genders of those stars.
 
 ---
 
@@ -115,11 +121,7 @@ IMDB.Star.Query <- function(movie.id){
     .[1:2] %>%
     paste(collapse=', ')
 }
-```
 
----
-
-```{r eval=FALSE}
 Wikipedia.Gender.Query <- function(lead){
   Sys.sleep(0.5)
   lead <- str_replace_all(lead, ' ', '_')
@@ -145,7 +147,7 @@ Wikipedia.Gender.Query <- function(lead){
 }
 ```
 
-The `IMDB.Star.Query` uses the url provided by the API to scrape the two main leads of each film. The `Wikipedia.Gender.Query` scrapes Wikipedia in an effort to determine the gender of the star by looking for the woards 'actor' or 'actress'. If a determination cannot be made, it returns null. This method had over a 95% success rate.
+- `Wikipedia.Gender.Query` scrapes Wikipedia in an effort to determine the gender of the star by looking for the words 'actor' or 'actress'.
 
 ---
 
@@ -160,7 +162,7 @@ all.movies %>%
 ---
 
 <div class='jumbotron'>
-Initial Analysis
+What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?
 </div>
 
 <div class='col-left'>
@@ -184,6 +186,10 @@ movie.count %>%
 
 ---
 
+<div class='jumbotron'>
+What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?
+</div>
+
 ```{r echo=FALSE}
 ggplot(gender.genre) +
   geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
@@ -198,6 +204,10 @@ ggplot(gender.genre) +
 ```
 
 --- 
+
+<div class='jumbotron'>
+What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?
+</div>
 
 <div class='col-left'>
 ```{r echo=FALSE}
@@ -250,12 +260,8 @@ shinyApp(
 
 ---
 
-Also can put rating breakdown here if needed
-
----
-
 <div class='jumbotron'>
-Sentiment Analysis
+<h2>What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?</h2>
 </div>
 
 ```{r echo=FALSE}
@@ -281,10 +287,10 @@ ggplot(label.data, aes(order, n, fill=Type)) +
 ---
 
 <div class='jumbotron'>
-Suggestions
+<h2>What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?</h2>
 </div>
 
-```{sql eval=FALSE}
+```{neo4j eval=FALSE}
 MATCH (a:Actor)-->(m:Movie)
 WITH a, COUNT(m) as c
 ORDER BY c DESC
@@ -314,7 +320,7 @@ synopsis.words %>%
   kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 15)
 ```
 
-Amy Adams and Cameron Diaz star in "Action Blockbuster"! Frustrated by her commanding officer's unwillingness to address an ongoing civil war on a foreign island nation, Major Jennifer Slater (Cameron Diaz) enlists the help of surivial specialist Annie (Amy Adams). Together they journey to the secretive island in an effort to end the prolonged conflict. But what they discover there will shake the world to it's very core. Can they solve the mystery of the island before Jennifer's reneage Colonel can nuke the island via drone? You won't want to miss a moment of "Action Blockbuster!"
+Amy Adams and Cameron Diaz star in "Action Blockbuster"! Frustrated by her commanding officer's unwillingness to address an ongoing civil war on a foreign island nation, Major Jennifer Slater (Cameron Diaz) enlists the help of survival specialist Annie (Amy Adams). Together they journey to the secretive island in an effort to end the prolonged conflict. But what they discover there will shake the world to it's very core. Can they solve the mystery of the island before Jennifer's renagade Colonel can nuke the island via drone? You won't want to miss a moment of "Action Blockbuster!"
 
 ---
 
@@ -382,3 +388,32 @@ shinyApp(
   option=list(width='100%', height='100%')
 )
 ```
+
+---
+
+<div class='jumbotron'>
+<h2>What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?</h2>
+</div>
+
+Women are severely underrepresented in blockbuster movies. This is especially evident in movies that have two female leads. When movies do star women they are overwhelmingly likely to be either comedies aimed at women or fairy tales aimed at families. There is an  severe lack of representation among women in action movies.
+
+- Oceans 8
+- Mamma Mia! Here We Go Again
+- Crazy Rich Asians
+- The Happytime Murders
+- Mary Queen of Scots
+- Widows
+- Vita and Virginia
+- Can You Ever Forgive Me?
+
+
+
+
+
+
+
+
+
+
+
+
