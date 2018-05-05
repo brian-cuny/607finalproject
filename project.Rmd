@@ -284,6 +284,15 @@ ggplot(label.data, aes(order, n, fill=Type)) +
 Suggestions
 </div>
 
+```{sql eval=FALSE}
+MATCH (a:Actor)-->(m:Movie)
+WITH a, COUNT(m) as c
+ORDER BY c DESC
+LIMIT 50
+
+MATCH (a)-->(n:Movie)
+RETURN a, n
+```
 
 <img class='graph-all' src='https://raw.githubusercontent.com/brian-cuny/607finalproject/master/graph.png'/>
 
