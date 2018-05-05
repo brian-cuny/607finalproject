@@ -144,7 +144,7 @@ tree.movies <- all.movies %>%
          Type = ifelse(Lead_1_Male & Lead_2_Male, 'Male/Male', ifelse(Lead_1_Male & !Lead_2_Male, 'Male/Female', 
                 ifelse(!Lead_1_Male & Lead_2_Male, 'Female/Male', 'Female/Female')))
   ) %>%
-  select(-Lead_1_Male, -Lead_2_Male, -Poster, -imdbID, -Type2)
+  select(-Lead_1_Male, -Lead_2_Male, -Poster, -imdbID)
 
 
 tree <- treemap(tree.movies, index=c('Type', 'Genre', 'Title'),
@@ -338,10 +338,10 @@ tidy.movies %>%
 #Amy Adams, Cameron Diaz
 
 action.movie.analysis <- word.analysis %>%
-  filter(Type == 'mm') 
+  filter(Type == 'Male/Male') 
 
-set.seed(250)
-sample.index <- sample(seq_len(nrow(action.movie.analysis)), 10, prob=action.movie.analysis$n)
+set.seed(240)
+sample.index <- sample(seq_len(nrow(action.movie.analysis)), 8, prob=action.movie.analysis$tf_idf)
 
 synopsis.words <- action.movie.analysis[sample.index, ]
 

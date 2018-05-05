@@ -29,6 +29,8 @@ library(ggraph)
 library(igraph)
 library(treemap)
 library(scales)
+library(shiny)
+library(d3treeR)
 library(knitr)
 library(kableExtra)
 library(repmis)
@@ -231,7 +233,22 @@ top.box.office %>%
 
 ---
 
-Shiny APP #1 - Gender/BoxOffice/Genre Treemap
+```{r echo=FALSE}
+shinyApp(
+  ui <- fluidPage(
+          d3tree3Output('tree', width='1500px', '1000px')
+        ),
+
+  server <- function(input, output){
+    output$tree <- renderD3tree3({
+      d3tree3(tree, root='Movie')
+    })
+  },
+  option=list(width='100%', height='100%')
+)
+```
+
+---
 
 Also can put rating breakdown here if needed
 
@@ -264,27 +281,95 @@ ggplot(label.data, aes(order, n, fill=Type)) +
 ---
 
 <div class='jumbotron'>
-Suggestion
+Suggestions
 </div>
 
 
+<img class='graph-all' src='https://raw.githubusercontent.com/brian-cuny/607finalproject/master/graph.png'/>
+
+---
+
+<div class='col-left'>
+<img src='https://raw.githubusercontent.com/brian-cuny/607finalproject/master/camerondiaz.png'/>
+</div>
+
+<div class='col-right'>
+<img src='https://raw.githubusercontent.com/brian-cuny/607finalproject/master/amyadams.png'/>
+</div>
+
+<div class='clearfix'></div>
+
+```{r echo=FALSE}
+synopsis.words %>%
+  kable('html') %>%
+  kable_styling(bootstrap_options = c('striped', 'hover'), font_size = 15)
+```
+
+Amy Adams and Cameron Diaz star in "Action Blockbuster"! Frustrated by her commanding officer's unwillingness to address an ongoing civil war on a foreign island nation, Major Jennifer Slater (Cameron Diaz) enlists the help of surivial specialist Annie (Amy Adams). Together they journey to the secretive island in an effort to end the prolonged conflict. But what they discover there will shake the world to it's very core. Can they solve the mystery of the island before Jennifer's reneage Colonel can nuke the island via drone? You won't want to miss a moment of "Action Blockbuster!"
+
+---
+
+```{r echo=FALSE}
+shinyApp(
+  ui <- fluidPage(
+          selectInput('Year', label='Year', choices = c('All', 2008:2017)),
+          selectInput('Rated', label='Rated', choice = c('All', "G", "PG", "PG-13", "R" )),
+          selectInput('Genre', label='Genre', choice = c('All', "Action", "Adventure", "Animation",
+                                                         "Biography", "Comedy", "Crime", "Documentary",
+                                                         "Drama", "Family", "Fantasy", "Horror",     
+                                                         "Mystery", "Sci-Fi")),
+          selectInput('Type', label='Gender Balance', choice = c('All', "Female/Female", "Female/Male",
+                                                                 "Male/Female", "Male/Male")),
+          actionButton('action', 'Filter'),
+          plotOutput("plot"),
+          dataTableOutput('table')
+    ),
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  server <- function(input, output) {
+    
+    data <- eventReactive(input$action, {
+      to.ret <- tool.tip.movies
+      if(input$Year != 'All'){
+        to.ret %<>% filter(Year == input$Year)
+      }
+      if(input$Rated != 'All'){
+        to.ret %<>% filter(Rated == input$Rated)
+      }
+      if(input$Genre != 'All'){
+        to.ret %<>% filter(Genre == input$Genre)
+      }
+      if(input$Type != 'All'){
+        to.ret %<>% filter(Type == input$Type)
+      }
+      to.ret
+    }, ignoreNULL=FALSE)
+    
+    output$plot <- renderPlot({
+      data() %>%
+        ggplot() + 
+        background.bar +
+        geom_bar(aes(Order, BoxOffice, fill=factor(Type)), stat='identity', show.legend = FALSE, width=1) + 
+        geom_text(data=data.frame(x=seq(25, 500, 50), text=2008:2017), aes(x, y=325000000, label=text), size=5) +
+        scale_x_discrete(expand=c(.01, .01), labels=NULL, breaks=0:500) +
+        scale_y_continuous(expand=c(0, 0, .01, .01), labels=dollar_format(), breaks=seq(0, 1000000000, 100000000)) +
+        labs(x = NULL,
+             y = NULL) +
+        theme_bw() +
+        theme(axis.ticks.x = element_blank(),
+              panel.grid.minor.x = element_blank(),
+              panel.grid.major.x = element_blank()) +
+        scale_fill_manual(values=group.colors)
+      
+    })
+    
+    output$table <- renderDataTable({
+      data() %>%
+        select(-Order) %>%
+        mutate(BoxOffice = formattable::currency(BoxOffice))
+    })
+    
+  },
+  option=list(width='100%', height='100%')
+)
+```

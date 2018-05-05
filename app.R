@@ -3,6 +3,8 @@ library(tidyverse)
 library(d3treeR)
 library(treemap)
 
+load('realdata.RData')
+
 ui <- fluidPage(
   d3tree3Output('tree', width='1500px', '1000px')
 )

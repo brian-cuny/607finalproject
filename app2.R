@@ -4,24 +4,30 @@ library(shiny)
 library(scales)
 library(magrittr)
 
-group.colors <- c('Male/Male' = "#984ea3", 'Male/Female' = "#4daf4a", 'Female/Male' ="#377eb8", 'Female/Female' = "#e41a1c")
+load('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
 
-tool.tip.movies <- all.movies %>%
-  select(1:6, 8, 15, 14) %>%
-  arrange(Year, BoxOffice) %>%
-  mutate(Order = row_number()) %>%
-  rename(`Lead 1` = Lead_1, 
-         `Lead 2` = Lead_2)
+#group.colors <- c('Male/Male' = "#984ea3", 'Male/Female' = "#4daf4a", 'Female/Male' ="#377eb8", 'Female/Female' = "#e41a1c")
 
-background.bar <- geom_bar(data=tool.tip.movies, aes(Order, BoxOffice), 
-                             fill='grey20', stat='identity',  width=1)
+#tool.tip.movies <- all.movies %>%
+  #select(1:6, 8, 15, 14) %>%
+  #arrange(Year, BoxOffice) %>%
+  #mutate(Order = row_number()) %>%
+  #rename(`Lead 1` = Lead_1, 
+         #`Lead 2` = Lead_2)
+
+#background.bar <- geom_bar(data=tool.tip.movies, aes(Order, BoxOffice), 
+ #                            fill='grey20', stat='identity',  width=1)
 
 
 ui <- fluidPage(
-          selectInput('Year', label='Year', choices = c('All', years)),
-          selectInput('Rated', label='Rated', choice = c('All', rateds)),
-          selectInput('Genre', label='Genre', choice = c('All', genres)),
-          selectInput('Type', label='Gender Balance', choice = c('All', types)),
+          selectInput('Year', label='Year', choices = c('All', 2008:2017)),
+          selectInput('Rated', label='Rated', choice = c('All', "G", "PG", "PG-13", "R" )),
+          selectInput('Genre', label='Genre', choice = c('All', "Action", "Adventure", "Animation",
+                                                         "Biography", "Comedy", "Crime", "Documentary",
+                                                         "Drama", "Family", "Fantasy", "Horror",     
+                                                         "Mystery", "Sci-Fi")),
+          selectInput('Type', label='Gender Balance', choice = c('All', "Female/Female", "Female/Male",
+                                                                 "Male/Female", "Male/Male")),
           actionButton('action', 'Filter'),
           plotOutput("plot"),
           dataTableOutput('table')
