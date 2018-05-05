@@ -100,7 +100,9 @@ all.movies <- 2008:2017 %>%
                 map_df(~read_csv(paste0('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\', ., '.csv')))
 
 all.movies %<>%
-  mutate(Type = ifelse(Lead_1_Male & Lead_2_Male, 'mm', ifelse(Lead_1_Male & !Lead_2_Male, 'mf', ifelse(!Lead_1_Male & Lead_2_Male, 'fm', 'ff'))))
+  mutate(Type = ifelse(Lead_1_Male & Lead_2_Male, 'Male/Male', 
+                ifelse(Lead_1_Male & !Lead_2_Male, 'Male/Female', 
+                ifelse(!Lead_1_Male & Lead_2_Male, 'Female/Male', 'Female/Female'))))
 
 
 # exploratory analysis ----------------------------------------------------
@@ -130,17 +132,37 @@ gender.genre <- all.movies %>%
   ungroup(Type) %>%
   arrange(Type, desc(prop))
 
-tree <- gender.genre %>%
-  treemap(index=c('Type', 'Genre'),
-          vSize='n',
-          type='index')
 
-d3tree(tree)
+tree.movies <- all.movies %>%
+  mutate(BoxOffice = BoxOffice/100,
+         Title = substr(Title, 0, 20),
+         Type = ifelse(Lead_1_Male & Lead_2_Male, 'Male/Male', ifelse(Lead_1_Male & !Lead_2_Male, 'Male/Female', 
+                ifelse(!Lead_1_Male & Lead_2_Male, 'Female/Male', 'Female/Female')))
+  ) %>%
+  select(-Lead_1_Male, -Lead_2_Male, -Poster, -imdbID, -Type2)
+
+
+tree <- treemap(tree.movies, index=c('Type', 'Genre', 'Title'),
+          vSize='BoxOffice',
+          type='index',
+          title='Top Movies By Gender of Lead Stars',
+          palette='Set1',
+          fontsize.labels = c(20, 15, 10))
+
+treemap(tree.movies, index=c('Type', 'Genre'),
+        vSize='BoxOffice',
+        type='index',
+        title='Top Movies By Gender of Lead Stars',
+        palette='Set1',
+        fontsize.labels = c(20, 15))
+
+d3tree3(tree, rootname='All Movies')
 
 ggplot(gender.genre) +
   geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
   coord_flip() +
-  scale_x_discrete()
+  scale_x_discrete() +
+  scale_fill_brewer(palette = 'Set1')
 
 #Women get comedy movies much more than Men, who get action movies
 
@@ -285,7 +307,7 @@ summary(graph)
 
 female.actors <- cypher(graph, "MATCH (a:Actor)-[acted:ACTED_IN]->(m:Movie)
                                 WHERE a.gender = 'Female'
-                                AND NOT(acted.type = 'ff')
+                                AND NOT(acted.type = 'Female/Female')
                                 RETURN DISTINCT a.name")
 
 tidy.movies %>%
@@ -334,6 +356,8 @@ all.movies %>%
 library(shiny)
 library(tidyverse)
 library(d3treeR)
+library(treemap)
+library(d3Tree)
 
 ui <- fluidPage(
         sliderInput(inputId = 'num',
@@ -360,16 +384,6 @@ server <- function(input, output){
   output$all <- renderTable({
     data()
   })
-  
-  #output$hist <- renderPlot({
-    #data() %>%
-      #ggplot(aes(reorder(Title, BoxOffice), BoxOffice)) +
-      #geom_bar(aes(fill=factor(Year)), stat='identity') +
-      #labs(x=NULL,
-           #y='Box Office',
-           #fill='Year') +
-   #   scale_fill_brewer(palette = 'Set1')
-  #})
   
   output$hist <- renderD3tree3({
     tree <- gender.genre %>%
