@@ -113,15 +113,6 @@ Movie.API.Query <- function(movie, year){
 ---
 
 ```{r eval=FALSE}
-IMDB.Star.Query <- function(movie.id){
-  Sys.sleep(1)
-  getURL(paste0('https://www.imdb.com/title/', movie.id,'/')) %>% 
-    htmlParse() %>%
-    xpathSApply('//*[@id="title-overview-widget"]//span[@itemprop="actors"]//a', xmlValue) %>%
-    .[1:2] %>%
-    paste(collapse=', ')
-}
-
 Wikipedia.Gender.Query <- function(lead){
   Sys.sleep(0.5)
   lead <- str_replace_all(lead, ' ', '_')
@@ -183,6 +174,12 @@ movie.count %>%
           palette = c("#e41a1c", "#377eb8", "#4daf4a", "#984ea3"))
 ```
 </div>
+
+<div class='clearfix'></div>
+
+```{r echo=FALSE}
+chisq.test(x=movie.count$n, p=rep(0.25, 4)) 
+```
 
 ---
 
@@ -291,13 +288,13 @@ ggplot(label.data, aes(order, n, fill=Type)) +
 </div>
 
 ```{neo4j eval=FALSE}
-MATCH (a:Actor)-->(m:Movie)
-WITH a, COUNT(m) as c
+MATCH (a:Actor {gender:'Female'})-->(m:Movie)
+WITH a, COUNT(m) AS c
 ORDER BY c DESC
 LIMIT 50
 
-MATCH (a)-->(n:Movie)
-RETURN a, n
+MATCH (a)-->(m)
+RETURN a, m
 ```
 
 <img class='graph-all' src='https://raw.githubusercontent.com/brian-cuny/607finalproject/master/graph.png'/>

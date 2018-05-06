@@ -127,6 +127,7 @@ movie.count %>%
 
 chisq.test(x=movie.count$n, p=rep(0.25, 4)) 
 
+
 #There is unequal representation in mm, mf, fm and ff movies.
 
 
