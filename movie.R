@@ -138,6 +138,19 @@ gender.genre <- all.movies %>%
   ungroup(Type) %>%
   arrange(Type, desc(prop))
 
+gender.genre %>%
+  select(-n) %>%
+  spread(Genre, prop)
+
+gender.genre.compare <- all.movies %>%
+  count(Type, Genre) %>%
+  spread(Genre, n) %>%
+  mutate_all(. %>% replace_na(0)) %>% 
+  select(-1) %>%
+  as.matrix()
+
+
+chisq.test(gender.genre.compare)
 
 tree.movies <- all.movies %>%
   mutate(BoxOffice = BoxOffice/100,

@@ -187,7 +187,7 @@ chisq.test(x=movie.count$n, p=rep(0.25, 4))
 What is the relationship between the Top Grossing Blockbusters of the last decade and the gender of the movie's main stars?
 </div>
 
-```{r echo=FALSE}
+```{r echo=FALSE, warning=FALSE}
 ggplot(gender.genre) +
   geom_bar(aes(reorder(Genre, desc(Genre)), prop, fill=Type), stat='identity', position='dodge') +
   coord_flip() +
@@ -198,6 +198,8 @@ ggplot(gender.genre) +
        y='Proportion') +
   theme_bw() +
   theme(panel.grid.major.y = element_blank())
+
+chisq.test(gender.genre.compare)
 ```
 
 --- 
