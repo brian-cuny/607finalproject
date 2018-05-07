@@ -5,8 +5,8 @@ account: brian-cuny
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 337961
-bundleId: 1357725
+bundleId: 1360496
 url: https://brian-cuny.shinyapps.io/App-2/
-when: 1525552167.80324
+when: 1525713216.59489
 asMultiple: FALSE
 asStatic: FALSE

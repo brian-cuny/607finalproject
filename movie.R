@@ -434,7 +434,12 @@ shinyApp(ui = ui, server = server)
 
 
 
-
+tool.tip.all.movies <- all.movies %>%
+  select(1:6, 8, 15, 14) %>%
+  arrange(BoxOffice) %>%
+  mutate(Order = row_number()) %>%
+  rename(`Lead 1` = Lead_1, 
+  `Lead 2` = Lead_2)
 
 
 

@@ -1,4 +1,3 @@
-library(ggplot2)
 library(tidyverse)
 library(shiny)
 library(scales)
@@ -6,31 +5,27 @@ library(magrittr)
 
 load('C:\\Users\\Brian\\Desktop\\GradClasses\\Spring18\\607\\607finalproject\\realdata.RData')
 
-#group.colors <- c('Male/Male' = "#984ea3", 'Male/Female' = "#4daf4a", 'Female/Male' ="#377eb8", 'Female/Female' = "#e41a1c")
-
-#tool.tip.movies <- all.movies %>%
-  #select(1:6, 8, 15, 14) %>%
-  #arrange(Year, BoxOffice) %>%
-  #mutate(Order = row_number()) %>%
-  #rename(`Lead 1` = Lead_1, 
-         #`Lead 2` = Lead_2)
-
-#background.bar <- geom_bar(data=tool.tip.movies, aes(Order, BoxOffice), 
- #                            fill='grey20', stat='identity',  width=1)
-
-
 ui <- fluidPage(
-          selectInput('Year', label='Year', choices = c('All', 2008:2017)),
-          selectInput('Rated', label='Rated', choice = c('All', "G", "PG", "PG-13", "R" )),
-          selectInput('Genre', label='Genre', choice = c('All', "Action", "Adventure", "Animation",
+          tags$head(tags$title('Blockbuster Movie Explorer by Brian Weinfeld')),
+          div(class='jumbotron', style='padding-top: 10px; padding-bottom: 10px', 
+              h1(align='center', 'Blockbuster Movie Explorer'), 
+              h3(align='right', 'By Brian Weinfeld')
+              ),
+          div(
+              div(class='well col-xs-2',
+                selectInput('Year', label='Year', choices = c('All', 2008:2017)),
+                selectInput('Rated', label='Rated', choice = c('All', "G", "PG", "PG-13", "R" )),
+                selectInput('Genre', label='Genre', choice = c('All', "Action", "Adventure", "Animation",
                                                          "Biography", "Comedy", "Crime", "Documentary",
                                                          "Drama", "Family", "Fantasy", "Horror",     
                                                          "Mystery", "Sci-Fi")),
-          selectInput('Type', label='Gender Balance', choice = c('All', "Female/Female", "Female/Male",
+                selectInput('Type', label='Gender Balance', choice = c('All', "Female/Female", "Female/Male",
                                                                  "Male/Female", "Male/Male")),
-          actionButton('action', 'Filter'),
-          plotOutput("plot"),
-          dataTableOutput('table')
+                actionButton('action', 'Filter', class='btn btn-primary btn-block')
+                ),
+              div(class='col-xs-10', plotOutput("plot"))
+            ),
+          div(class='col-xs-12', style='margin-top: 10px', dataTableOutput('table'))
     )
 
 
