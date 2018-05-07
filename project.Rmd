@@ -1,7 +1,7 @@
 ---
 title: "607 Final Project"
 author: "Brian Weinfeld"
-date: "Mary 5, 2018"
+date: "May 7th, 2018"
 output: 
   slidy_presentation:
     df_print: kable
@@ -257,6 +257,8 @@ shinyApp(
 )
 ```
 
+[Shiny App](https://brian-cuny.shinyapps.io/app-1/)
+
 ---
 
 <div class='jumbotron'>
@@ -290,7 +292,7 @@ ggplot(label.data, aes(order, n, fill=Type)) +
 </div>
 
 ```{neo4j eval=FALSE}
-MATCH (a:Actor {gender:'Female'})-->(m:Movie)
+MATCH (a:Actor)-->(m:Movie)
 WITH a, COUNT(m) AS c
 ORDER BY c DESC
 LIMIT 50
@@ -387,6 +389,8 @@ shinyApp(
   option=list(width='100%', height='100%')
 )
 ```
+
+[Shiny App](https://brian-cuny.shinyapps.io/App-2/)
 
 ---
 
